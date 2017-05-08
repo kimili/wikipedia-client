@@ -17,6 +17,10 @@ module Wikipedia
     client.find( page, options )
   end
 
+  def self.find_by_id( id, options = {} )
+    client.find_by_id( id, options )
+  end
+
   def self.find_image( title, options = {} )
     client.find_image( title, options )
   end
@@ -30,9 +34,11 @@ module Wikipedia
   end
 
   Configure {
-    protocol  'https'
-    domain    'en.wikipedia.org'
-    path      'w/api.php'
+    protocol           'https'
+    domain             'en.wikipedia.org'
+    domain_wikidata    'www.wikidata.org'
+    path               'w/api.php'
+    default_language   'en'
     user_agent(
       'wikipedia-client/1.3 (https://github.com/kenpratt/wikipedia-client)'
     )

@@ -20,6 +20,11 @@ module Wikipedia
       instance.send(directive)
     end
 
-    directives :protocol, :domain, :path, :user_agent
+    directives :protocol,
+               :domain,
+               :domain_wikidata,
+               :path,
+               :user_agent,
+               :default_language
   end
 end

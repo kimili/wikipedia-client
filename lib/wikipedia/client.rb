@@ -18,6 +18,12 @@ module Wikipedia
       page
     end
 
+    def find_by_id( id, options = {} )
+      wikidata = Wikidata.new( request_wikidata( id, options ) )
+      return wikidata.error if wikidata.error?
+      find((wikidata.label), options)
+    end
+
     def find_image( title, options = {} )
       title = Url.new(title).title rescue title
       Page.new( request_image( title, options ) )
@@ -60,6 +66,16 @@ module Wikipedia
                  :grnnamespace => "0",
                  :prop => "info"
                }.merge( options ) )
+    end
+
+    # https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&format=json&ids=Q192023&languages=en&props=labels
+    def request_wikidata( id, options = {} )
+      request( { 
+                 :domain => Configuration[:domain_wikidata],
+                 :action => 'wbgetentities',
+                 :sites =>  'enwiki',
+                 :ids =>    id
+               }.merge( options ))
     end
 
     def request( options )
