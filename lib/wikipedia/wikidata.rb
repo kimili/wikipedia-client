@@ -7,18 +7,31 @@ module Wikipedia
     end
 
     def entities
-      return error if error?
-      @data['entities'].values.first
+      @data['entities'].values.first if @data['entities']
     end
 
     def labels
-      return error if error?
-      entities['labels']
+      entities['labels'] if entites['labels']
     end
 
     def label( lang = Configuration[:default_language] )
-      return error if error?
-      labels[lang]['value']
+      labels[lang]['value'] if labels
+    end
+
+    def descriptions
+      entities['descriptions'] if entites['descriptions']
+    end
+
+    def description( lang = Configuration[:default_language] )
+      labels[lang]['description'] if descriptions
+    end
+
+    def sitelinks
+      entities['sitelinks'] if entites['sitelinks']
+    end
+
+    def sitelink( lang = Configuration[:default_language] )
+      sitelinks["#{lang.downcase}wiki"]['title'] if sitelink
     end
 
     def error?
@@ -26,8 +39,7 @@ module Wikipedia
     end
 
     def error
-      return nil unless error?
-      @data['error']
+      @data['error'] if @data['error']
     end
 
     def raw_data
