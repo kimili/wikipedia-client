@@ -20,7 +20,7 @@ module Wikipedia
 
     def find_by_id( id, options = {} )
       wikidata = Wikidata.new( request_wikidata( id, options ) )
-      return wikidata.error if wikidata.error?
+      return wikidata.raw_data if wikidata.error?
       find((wikidata.label), options)
     end
 
