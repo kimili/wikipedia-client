@@ -11,7 +11,7 @@ module Wikipedia
     end
 
     def labels
-      entities['labels'] if entites['labels']
+      entities['labels'] if entities['labels']
     end
 
     def label( lang = Configuration[:default_language] )
@@ -19,7 +19,7 @@ module Wikipedia
     end
 
     def descriptions
-      entities['descriptions'] if entites['descriptions']
+      entities['descriptions'] if entities['descriptions']
     end
 
     def description( lang = Configuration[:default_language] )
@@ -27,7 +27,7 @@ module Wikipedia
     end
 
     def sitelinks
-      entities['sitelinks'] if entites['sitelinks']
+      entities['sitelinks'] if entities['sitelinks']
     end
 
     def sitelink( lang = Configuration[:default_language] )
