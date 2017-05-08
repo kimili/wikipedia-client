@@ -102,6 +102,18 @@ module Wikipedia
       page['templates'].map {|c| c['title'] } if page['templates']
     end
 
+    def error?
+      @data.has_key?('error') || @data.has_key?('warnings')
+    end
+
+    def warnings
+      @data['warnings']
+    end
+
+    def error
+      @data['error']
+    end
+
     def json
       @json
     end
