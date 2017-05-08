@@ -44,8 +44,12 @@ module Wikipedia
       page['extract']
     end
 
-    def summary
-      (page['extract'].split("=="))[0].strip if page['extract'] && page['extract'] != ''
+    def summary( type = 'extract' )
+      (page[type].split("=="))[0].strip if page[type] && page[type] != ''
+    end
+
+    def sanitized_summary
+      self.class.sanitize(summary('content'))
     end
 
     def categories
