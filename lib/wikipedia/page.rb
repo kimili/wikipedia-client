@@ -72,16 +72,28 @@ module Wikipedia
       page['imageinfo'].first['url'] if page['imageinfo']
     end
 
+    def image_thumb_url
+      page['imageinfo'].first['thumburl'] if page['imageinfo']
+    end
+
+    def image_thumb_dimensions
+      return unless page.key?('imageinfo')
+      {
+        width: page['imageinfo'].first['thumbwidth'],
+        height: page['imageinfo'].first['thumbheight']
+      }
+    end
+
     def image_descriptionurl
       page['imageinfo'].first['descriptionurl'] if page['imageinfo']
     end
 
     def image_urls
-      image_metadata.map {|img| img.image_url }
+      image_metadata.map(&:image_url)
     end
 
     def image_descriptionurls
-      image_metadata.map {|img| img.image_descriptionurl }
+      image_metadata.map(&:image_descriptionurl)
     end
 
     def coordinates
@@ -107,7 +119,7 @@ module Wikipedia
     end
 
     def error?
-      @data.has_key?('error') || @data.has_key?('warnings')
+      @data.key?('error') || @data.key?('warnings')
     end
 
     def warnings
