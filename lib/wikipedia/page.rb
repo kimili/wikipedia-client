@@ -119,15 +119,19 @@ module Wikipedia
     end
 
     def error?
-      @data.key?('error') || @data.key?('warnings')
-    end
-
-    def warnings
-      @data['warnings']
+      @data.key?('error')
     end
 
     def error
       @data['error']
+    end
+
+    def warnings?
+      @data.key?('warnings')
+    end
+
+    def warnings
+      @data['warnings']
     end
 
     def json
