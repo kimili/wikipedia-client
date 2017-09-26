@@ -11,7 +11,8 @@ module Wikipedia
     end
 
     def content
-      page['revisions'].first['*'] if page['revisions']
+      return nil unless page['revisions']
+      page['revisions'].first['*']
     end
 
     def sanitized_content
@@ -44,12 +45,22 @@ module Wikipedia
       page['extract']
     end
 
+    def extract
+      return nil unless page['extract'] && page['extract'] != ''
+      (page['extract'].split("=="))[0].strip
+    end
+
+    def sanitized_extract
+      self.class.sanitize extract
+    end
+
     def summary
-      (page['extract'].split("=="))[0].strip if page['extract'] && page['extract'] != ''
+      return nil unless content
+      (content.split("=="))[0].strip
     end
 
     def sanitized_summary
-      self.class.sanitize( (content.split("=="))[0].strip ) if content && content != ''
+      self.class.sanitize summary
     end
 
     def categories
@@ -138,45 +149,51 @@ module Wikipedia
       @json
     end
 
-    def self.sanitize( s )
-      if s
-        s = s.dup
+    # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/AbcSize
+    def self.sanitize(s)
+      return unless s
 
-        # strip anything inside curly braces!
-        while s =~ /\{\{[^\{\}]+?\}\}/
-          s.gsub!(/\{\{[^\{\}]+?\}\}/, '')
-        end
+      # Transform language specific blocks
+      s.gsub!(/\{\{lang[\-\|]([a-z]+)\|([^\|\{\}]+)(\|[^\{\}]+)?\}\}/i, '<span lang="\1">\2</span>')
 
-        # strip info box
-        s.sub!(/^\{\|[^\{\}]+?\n\|\}\n/, '')
+      # strip anything inside curly braces!
+      s.gsub!(/\{\{[^\{\}]+?\}\}[\;\,]?/, '') while s =~ /\{\{[^\{\}]+?\}\}[\;\,]?/
 
-        # strip internal links
-        s.gsub!(/\[\[([^\]\|]+?)\|([^\]\|]+?)\]\]/, '\2')
-        s.gsub!(/\[\[([^\]\|]+?)\]\]/, '\1')
+      # strip info box
+      s.sub!(/^\{\|[^\{\}]+?\n\|\}\n/, '')
 
-        # strip images and file links
-        s.gsub!(/\[\[Image:[^\[\]]+?\]\]/, '')
-        s.gsub!(/\[\[File:[^\[\]]+?\]\]/, '')
+      # strip images and file links
+      s.gsub!(/\[\[Image:[^\[\]]+?\]\]/, '')
+      s.gsub!(/\[\[File:[^\[\]]+?\]\]/, '')
+      
+      # strip internal links
+      s.gsub!(/\[\[([^\]\|]+)\|(.*?(?=\]\]))??\]\]/i, '\2')
+      s.gsub!(/\[\[([^\]\|]+?)\]\]/, '\1')
 
-        # convert bold/italic to html
-        s.gsub!(/'''''(.+?)'''''/, '<b><i>\1</i></b>')
-        s.gsub!(/'''(.+?)'''/, '<b>\1</b>')
-        s.gsub!(/''(.+?)''/, '<i>\1</i>')
+      # convert bold/italic to html
+      s.gsub!(/'''''(.+?)'''''/, '<b><i>\1</i></b>')
+      s.gsub!(/'''(.+?)'''/, '<b>\1</b>')
+      s.gsub!(/''(.+?)''/, '<i>\1</i>')
 
-        # misc
-        s.gsub!(/<ref[^<>]*>[\s\S]*?<\/ref>/, '')
-        s.gsub!(/<!--[^>]+?-->/, '')
-        s.gsub!('  ', ' ')
-        s.strip!
+      # misc
+      s.gsub!(/(\d)<ref[^<>]*>[\s\S]*?<\/ref>(\d)/, '\1 &ndash; \2')
+      s.gsub!(/<ref[^<>]*>[\s\S]*?<\/ref>/, '')
+      s.gsub!(/<!--[^>]+?-->/, '')
+      s.gsub!(/\(\s+/, '(')
+      s.gsub!('  ', ' ')
+      s.strip!
 
-        # create paragraphs
-        sections = s.split("\n\n")
+      # create paragraphs
+      sections = s.split("\n\n")
+      s =
         if sections.size > 1
-          s = sections.map {|paragraph| "<p>#{paragraph.strip}</p>" }.join("\n")
+          sections.map { |paragraph| "<p>#{paragraph.strip}</p>" }.join("\n")
+        else
+          "<p>#{s}</p>"
         end
 
-        s
-      end
+      s
     end
   end
 end
