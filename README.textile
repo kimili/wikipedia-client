@@ -64,6 +64,10 @@ page.image_descriptionurls
 
 => ["http://en.wikipedia.org/wiki/File:Getting_Things_Done.jpg"]
 
+page.main_image_url
+
+=> "https://upload.wikimedia.org/wikipedia/en/e/e1/Getting_Things_Done.jpg"
+
 page.coordinates
 
 => [48.853, 2.3498, "", "earth"]
@@ -76,7 +80,7 @@ h2. Configuration
 
 This is by default configured like this:
 
-<pre><code>Wikipedia.Configure {
+<pre><code>Wikipedia.configure {
   domain 'en.wikipedia.org'
   path   'w/api.php'
 }</code></pre>
@@ -115,8 +119,6 @@ h3. Pushing a new release of the Gem
 
 Edit <code>lib/wikipedia/version.rb</code>, changing <code>VERSION</code>.
 
-Edit <code>wikipedia-client.gemspec</code>, changing <code>s.date</code> to today's date.
-
 Build the gem: <code>bundle exec gem build wikipedia-client.gemspec</code>
 
 Commit the changes: <code>git commit -a -m 'Version bump to 1.4.0' && git push</code>
@@ -138,6 +140,7 @@ Christian Hellsten <christian.hellsten@gmail.com>
 Christopher Quackenbush <christopher@quackenbush.me>
 Cyril David
 Francesco Serra <afnecors@gmail.com>
+Harman Singh
 ivobenedito <ivobenedito@gmail.com>
 Justin Harrison <justin@matthin.com>
 Ken Pratt <ken@kenpratt.net>

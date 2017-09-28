@@ -1,9 +1,11 @@
 module Wikipedia
   class Page
+    attr_reader :json
+
     def initialize(json)
       require 'json'
       @json = json
-      @data = JSON::load(json)
+      @data = JSON.parse(json)
     end
 
     def page
@@ -24,9 +26,7 @@ module Wikipedia
     end
 
     def redirect_title
-      if matches = redirect?
-        matches[1]
-      end
+      redirect?[1] rescue nil
     end
 
     def title
@@ -64,19 +64,19 @@ module Wikipedia
     end
 
     def categories
-      page['categories'].map {|c| c['title'] } if page['categories']
+      page['categories'].map { |c| c['title'] } if page['categories']
     end
 
     def links
-      page['links'].map {|c| c['title'] } if page['links']
+      page['links'].map { |c| c['title'] } if page['links']
     end
 
     def extlinks
-      page['extlinks'].map {|c| c['*'] } if page['extlinks']
+      page['extlinks'].map { |c| c['*'] } if page['extlinks']
     end
 
     def images
-      page['images'].map {|c| c['title'] } if page['images']
+      page['images'].map { |c| c['title'] } if page['images']
     end
 
     def image_url
@@ -100,11 +100,15 @@ module Wikipedia
     end
 
     def image_urls
-      image_metadata.map(&:image_url)
+      image_metadata.map(&:image_url) unless image_metadata.nil?
     end
 
     def image_descriptionurls
-      image_metadata.map(&:image_descriptionurl)
+      image_metadata.map(&:image_descriptionurl) unless image_metadata.nil?
+    end
+
+    def main_image_url
+      page['thumbnail']['source'].sub(/\/thumb/, '').sub(/\/[^\/]*$/, '') if page['thumbnail']
     end
 
     def coordinates
@@ -117,16 +121,15 @@ module Wikipedia
 
     def image_metadata
       unless @cached_image_metadata
-        if list = images
-          filtered = list.select {|i| i =~ /:.+\.(jpg|jpeg|png|gif|svg)$/i && !i.include?("LinkFA-star") }
-          @cached_image_metadata = filtered.map {|title| Wikipedia.find_image(title) }
-        end
+        return if images.nil?
+        filtered = images.select { |i| i =~ /:.+\.(jpg|jpeg|png|gif|svg)$/i && !i.include?('LinkFA-star') }
+        @cached_image_metadata = filtered.map { |title| Wikipedia.find_image(title) }
       end
       @cached_image_metadata || []
     end
 
     def templates
-      page['templates'].map {|c| c['title'] } if page['templates']
+      page['templates'].map { |c| c['title'] } if page['templates']
     end
 
     def error?
@@ -153,7 +156,7 @@ module Wikipedia
     # rubocop:disable Metrics/AbcSize
     def self.sanitize(s)
       return unless s
-      
+
       # Transform punctuation templates
       # Em dash (https://en.wikipedia.org/wiki/Template:Em_dash)
       s.gsub!(/\{\{(em dash|emdash)\}\}/i, '&mdash;')
@@ -180,7 +183,7 @@ module Wikipedia
       # strip images and file links
       s.gsub!(/\[\[Image:[^\[\]]+?\]\]/, '')
       s.gsub!(/\[\[File:[^\[\]]+?\]\]/, '')
-      
+
       # strip internal links
       s.gsub!(/\[\[([^\]\|]+)\|(.*?(?=\]\]))??\]\]/i, '\2')
       s.gsub!(/\[\[([^\]\|]+?)\]\]/, '\1')
