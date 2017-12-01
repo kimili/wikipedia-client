@@ -31,7 +31,7 @@ module Wikipedia
     end
 
     def sitelink( lang = Configuration[:default_language] )
-      sitelinks["#{lang.downcase}wiki"]['title'] if sitelinks
+      sitelinks["#{lang.downcase}wiki"]['title'] if sitelinks && sitelinks["#{lang.downcase}wiki"].present?
     end
 
     def error?
