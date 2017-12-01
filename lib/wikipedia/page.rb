@@ -83,7 +83,7 @@ module Wikipedia
       page['imageinfo'].first['url'] if page['imageinfo']
     end
 
-    def image_thumb_url
+    def image_thumburl
       page['imageinfo'].first['thumburl'] if page['imageinfo']
     end
 
@@ -103,6 +103,11 @@ module Wikipedia
       image_metadata.map(&:image_url) unless image_metadata.nil?
     end
 
+    def image_thumburls( width = nil )
+      options = width.nil? ? {} : { iiurlwidth: width }
+      image_metadata( options ).map(&:image_thumburl) unless image_metadata( options ).nil?
+    end
+
     def image_descriptionurls
       image_metadata.map(&:image_descriptionurl) unless image_metadata.nil?
     end
@@ -119,11 +124,11 @@ module Wikipedia
       @data
     end
 
-    def image_metadata
+    def image_metadata( options = {} )
       unless @cached_image_metadata
         return if images.nil?
         filtered = images.select { |i| i =~ /:.+\.(jpg|jpeg|png|gif|svg)$/i && !i.include?('LinkFA-star') }
-        @cached_image_metadata = filtered.map { |title| Wikipedia.find_image(title) }
+        @cached_image_metadata = filtered.map { |title| Wikipedia.find_image(title, options) }
       end
       @cached_image_metadata || []
     end
@@ -162,31 +167,39 @@ module Wikipedia
       s.gsub!(/\{\{(em dash|emdash)\}\}/i, '&mdash;')
       # En dash (https://en.wikipedia.org/wiki/Template:En_dash)
       s.gsub!(/\{\{(en dash|ndash|nsndns)\}\}/i, '&ndash;')
-      # Spaced en dashes
-      s.gsub!(/\{\{(spaced e?ndash|snds?|spndsp|sndashs|spndashsp)\}\}/i, '&nbsp;&ndash;&nbsp;')
-      # Bold middot (https://en.wikipedia.org/wiki/Template:·)
-      s.gsub!(/\{\{(·|dot|middot|\,)\}\}/i, "&nbsp;<b>&middot;</b>")
-      # Bullets (https://en.wikipedia.org/wiki/Template:•)
-      s.gsub!(/\{\{(•|bull(et)?)\}\}/i, "&nbsp;&bull;")
+      # Spaced en dashes (https://en.wikipedia.org/wiki/Template:Spaced_en_dash_space)
+      s.gsub!(/\{\{(spaced e?n\s?dash( space)?|snds?|spndsp|sndashs|spndashsp)\}\}/i, '&nbsp;&ndash;&nbsp;')
+      # Bold middot
+      s.gsub!(/\{\{(·|dot|middot|\,)\}\}/i, '&nbsp;<b>&middot;</b>')
+      # Bullets
+      s.gsub!(/\{\{(•|bull(et)?)\}\}/i, '&nbsp;&bull;')
       # Forward Slashes (https://en.wikipedia.org/wiki/Template:%5C)
-      s.gsub!(/\{\{\\\}\}/i, "&nbsp;/")
+      s.gsub!(/\{\{\\\}\}/i, '&nbsp;/')
 
       # Transform language specific blocks
       s.gsub!(/\{\{lang[\-\|]([a-z]+)\|([^\|\{\}]+)(\|[^\{\}]+)?\}\}/i, '<span lang="\1">\2</span>')
 
-      # strip anything inside curly braces!
+      # Parse Old Style Date template blocks
+      # Old Style Dates (https://en.wikipedia.org/wiki/Template:OldStyleDate)
+      s.gsub!(/\{\{OldStyleDate\|([^\|]*)\|([^\|]*)\|([^\|]*)\}\}/i, '\1 [<abbr title="Old Style">O.S.</abbr> \3] \2')
+      # Old Style Dates with different years (https://en.wikipedia.org/wiki/Template:OldStyleDateDY)
+      s.gsub!(/\{\{OldStyleDateDY\|([^\|]*)\|([^\|]*)\|([^\|]*)\}\}/i, '\1 \2 [<abbr title="Old Style">O.S.</abbr> \3]')
+      # Old Style Dates with no year (https://en.wikipedia.org/wiki/Template:OldStyleDateNY)
+      s.gsub!(/\{\{OldStyleDateNY\|([^\|]*)\|([^\|]*)\}\}/i, '\1 [<abbr title="Old Style">O.S.</abbr> \2]')
+
+      # strip anything else inside curly braces!
       s.gsub!(/\{\{[^\{\}]+?\}\}[\;\,]?/, '') while s =~ /\{\{[^\{\}]+?\}\}[\;\,]?/
 
       # strip info box
       s.sub!(/^\{\|[^\{\}]+?\n\|\}\n/, '')
 
-      # strip images and file links
-      s.gsub!(/\[\[Image:[^\[\]]+?\]\]/, '')
-      s.gsub!(/\[\[File:[^\[\]]+?\]\]/, '')
-
       # strip internal links
       s.gsub!(/\[\[([^\]\|]+)\|(.*?(?=\]\]))??\]\]/i, '\2')
       s.gsub!(/\[\[([^\]\|]+?)\]\]/, '\1')
+
+      # strip images and file links
+      s.gsub!(/\[\[Image:(.*?(?=\]\]))??\]\]/, '')
+      s.gsub!(/\[\[File:(.*?(?=\]\]))??\]\]/, '')
 
       # convert bold/italic to html
       s.gsub!(/'''''(.+?)'''''/, '<b><i>\1</i></b>')
@@ -196,6 +209,7 @@ module Wikipedia
       # misc
       s.gsub!(/(\d)<ref[^<>]*>[\s\S]*?<\/ref>(\d)/, '\1&nbsp;&ndash;&nbsp;\2')
       s.gsub!(/<ref[^<>]*>[\s\S]*?<\/ref>/, '')
+      s.gsub!(/<ref(.*?(?=\/>))??\/>/, '')
       s.gsub!(/<!--[^>]+?-->/, '')
       s.gsub!(/\(\s+/, '(')
       s.gsub!('  ', ' ')
