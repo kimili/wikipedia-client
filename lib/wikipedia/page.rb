@@ -68,12 +68,21 @@ module Wikipedia
       page['imageinfo'].first['url'] if page['imageinfo']
     end
 
+    def image_thumburl
+      page['imageinfo'].first['thumburl'] if page['imageinfo']
+    end
+
     def image_descriptionurl
       page['imageinfo'].first['descriptionurl'] if page['imageinfo']
     end
 
     def image_urls
       image_metadata.map(&:image_url) unless image_metadata.nil?
+    end
+
+    def image_thumburls( width = nil )
+      options = width.nil? ? {} : { iiurlwidth: width }
+      image_metadata( options ).map(&:image_thumburl) unless image_metadata( options ).nil?
     end
 
     def image_descriptionurls
@@ -92,11 +101,11 @@ module Wikipedia
       @data
     end
 
-    def image_metadata
+    def image_metadata( options = {} )
       unless @cached_image_metadata
         return if images.nil?
         filtered = images.select { |i| i =~ /:.+\.(jpg|jpeg|png|gif|svg)$/i && !i.include?('LinkFA-star') }
-        @cached_image_metadata = filtered.map { |title| Wikipedia.find_image(title) }
+        @cached_image_metadata = filtered.map { |title| Wikipedia.find_image(title, options) }
       end
       @cached_image_metadata || []
     end
@@ -107,11 +116,36 @@ module Wikipedia
 
     # rubocop:disable Metrics/MethodLength
     # rubocop:disable Metrics/AbcSize
-    def self.sanitize( s )
+    def self.sanitize(s)
       return unless s
 
-      # strip anything inside curly braces!
-      s.gsub!(/\{\{[^\{\}]+?\}\}/, '') while s =~ /\{\{[^\{\}]+?\}\}/
+      # Transform punctuation templates
+      # Em dash (https://en.wikipedia.org/wiki/Template:Em_dash)
+      s.gsub!(/\{\{(em dash|emdash)\}\}/i, '&mdash;')
+      # En dash (https://en.wikipedia.org/wiki/Template:En_dash)
+      s.gsub!(/\{\{(en dash|ndash|nsndns)\}\}/i, '&ndash;')
+      # Spaced en dashes (https://en.wikipedia.org/wiki/Template:Spaced_en_dash_space)
+      s.gsub!(/\{\{(spaced e?n\s?dash( space)?|snds?|spndsp|sndashs|spndashsp)\}\}/i, '&nbsp;&ndash;&nbsp;')
+      # Bold middot
+      s.gsub!(/\{\{(·|dot|middot|\,)\}\}/i, '&nbsp;<b>&middot;</b>')
+      # Bullets
+      s.gsub!(/\{\{(•|bull(et)?)\}\}/i, '&nbsp;&bull;')
+      # Forward Slashes (https://en.wikipedia.org/wiki/Template:%5C)
+      s.gsub!(/\{\{\\\}\}/i, '&nbsp;/')
+
+      # Transform language specific blocks
+      s.gsub!(/\{\{lang[\-\|]([a-z]+)\|([^\|\{\}]+)(\|[^\{\}]+)?\}\}/i, '<span lang="\1">\2</span>')
+
+      # Parse Old Style Date template blocks
+      # Old Style Dates (https://en.wikipedia.org/wiki/Template:OldStyleDate)
+      s.gsub!(/\{\{OldStyleDate\|([^\|]*)\|([^\|]*)\|([^\|]*)\}\}/i, '\1 [<abbr title="Old Style">O.S.</abbr> \3] \2')
+      # Old Style Dates with different years (https://en.wikipedia.org/wiki/Template:OldStyleDateDY)
+      s.gsub!(/\{\{OldStyleDateDY\|([^\|]*)\|([^\|]*)\|([^\|]*)\}\}/i, '\1 \2 [<abbr title="Old Style">O.S.</abbr> \3]')
+      # Old Style Dates with no year (https://en.wikipedia.org/wiki/Template:OldStyleDateNY)
+      s.gsub!(/\{\{OldStyleDateNY\|([^\|]*)\|([^\|]*)\}\}/i, '\1 [<abbr title="Old Style">O.S.</abbr> \2]')
+
+      # strip anything else inside curly braces!
+      s.gsub!(/\{\{[^\{\}]+?\}\}[\;\,]?/, '') while s =~ /\{\{[^\{\}]+?\}\}[\;\,]?/
 
       # strip info box
       s.sub!(/^\{\|[^\{\}]+?\n\|\}\n/, '')
@@ -121,8 +155,8 @@ module Wikipedia
       s.gsub!(/\[\[([^\]\|]+?)\]\]/, '\1')
 
       # strip images and file links
-      s.gsub!(/\[\[Image:[^\[\]]+?\]\]/, '')
-      s.gsub!(/\[\[File:[^\[\]]+?\]\]/, '')
+      s.gsub!(/\[\[Image:(.*?(?=\]\]))??\]\]/, '')
+      s.gsub!(/\[\[File:(.*?(?=\]\]))??\]\]/, '')
 
       # convert bold/italic to html
       s.gsub!(/'''''(.+?)'''''/, '<b><i>\1</i></b>')
@@ -130,16 +164,22 @@ module Wikipedia
       s.gsub!(/''(.+?)''/, '<i>\1</i>')
 
       # misc
+      s.gsub!(/(\d)<ref[^<>]*>[\s\S]*?<\/ref>(\d)/, '\1&nbsp;&ndash;&nbsp;\2')
       s.gsub!(/<ref[^<>]*>[\s\S]*?<\/ref>/, '')
+      s.gsub!(/<ref(.*?(?=\/>))??\/>/, '')
       s.gsub!(/<!--[^>]+?-->/, '')
+      s.gsub!(/\(\s+/, '(')
       s.gsub!('  ', ' ')
       s.strip!
 
       # create paragraphs
       sections = s.split("\n\n")
-      if sections.size > 1
-        s = sections.map { |paragraph| "<p>#{paragraph.strip}</p>" }.join("\n")
-      end
+      s =
+        if sections.size > 1
+          sections.map { |paragraph| "<p>#{paragraph.strip}</p>" }.join("\n")
+        else
+          "<p>#{s}</p>"
+        end
 
       s
     end
