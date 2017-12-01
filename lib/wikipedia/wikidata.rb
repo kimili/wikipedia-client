@@ -7,7 +7,7 @@ module Wikipedia
     end
 
     def entities
-      @data['entities'].values.first if @data['entities']
+      @data['entities'].values.first if @data['entities'] && @data['entities'].values
     end
 
     def labels
@@ -15,7 +15,7 @@ module Wikipedia
     end
 
     def label( lang = Configuration[:default_language] )
-      labels[lang]['value'] if labels
+      labels[lang]['value'] if labels && labels[lang]
     end
 
     def descriptions
@@ -23,7 +23,7 @@ module Wikipedia
     end
 
     def description( lang = Configuration[:default_language] )
-      labels[lang]['description'] if descriptions
+      labels[lang]['description'] if descriptions && labels[lang]
     end
 
     def sitelinks
@@ -31,7 +31,8 @@ module Wikipedia
     end
 
     def sitelink( lang = Configuration[:default_language] )
-      sitelinks["#{lang.downcase}wiki"]['title'] if sitelinks && sitelinks["#{lang.downcase}wiki"].present?
+      return nil unless sitelinks
+      sitelinks["#{lang}wiki"]['title'] if sitelinks["#{lang}wiki"].present?
     end
 
     def error?

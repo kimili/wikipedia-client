@@ -21,7 +21,7 @@ module Wikipedia
     def find_by_id( id, options = {} )
       wikidata = Wikidata.new( request_wikidata( id, options ) )
       return wikidata if wikidata.error?
-      find( wikidata.sitelink, options )
+      find( wikidata.sitelink, options ) if wikidata.sitelink.present?
     end
 
     def find_image( title, options = {} )
@@ -71,7 +71,7 @@ module Wikipedia
 
     # https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&format=json&ids=Q192023&languages=en&props=labels
     def request_wikidata( id, options = {} )
-      request( { 
+      request( {
                  :domain => Configuration[:domain_wikidata],
                  :action => 'wbgetentities',
                  :sites =>  'enwiki',

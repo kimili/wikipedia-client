@@ -9,12 +9,13 @@ module Wikipedia
     end
 
     def page
+      return {} unless @data['query'].present?
       @data['query']['pages'].values.first if @data['query']['pages']
     end
 
     def content
       return nil unless page['revisions']
-      page['revisions'].first['*']
+      page['revisions'].first['*'] rescue nil
     end
 
     def sanitized_content
@@ -22,7 +23,7 @@ module Wikipedia
     end
 
     def redirect?
-      content && content.match(/\#REDIRECT\s*\[\[(.*?)\]\]/i)
+      content && content.match(/\#REDIRECT\s*\[\[(.*?)\]\]/i) rescue nil
     end
 
     def redirect_title
