@@ -20,8 +20,8 @@ module Wikipedia
 
     def find_by_id( id, options = {} )
       wikidata = Wikidata.new( request_wikidata( id, options ) )
-      return wikidata if wikidata.error?
-      find( wikidata.sitelink, options ) if wikidata.sitelink.present?
+      return wikidata if wikidata.error? || wikidata.sitelink.blank?
+      find( wikidata.sitelink, options )
     end
 
     def find_image( title, options = {} )
